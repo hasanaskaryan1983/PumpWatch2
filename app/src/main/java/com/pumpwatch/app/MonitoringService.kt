@@ -4,7 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.ServiceCompat
-import androidx.core.content.pm.ServiceInfo
+import android.content.pm.ServiceInfo
 import com.pumpwatch.app.data.repository.MarketRepository
 import com.pumpwatch.app.data.repository.PumpSettingsStore
 import com.pumpwatch.app.data.repository.TradeSettingsStore
