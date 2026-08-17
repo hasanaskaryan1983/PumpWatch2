@@ -14,7 +14,8 @@ data class CoinTrack(
     val name: String,
     val imageUrl: String?,
     val history: List<PriceSnapshot>,
-    val change24hPercent: Double?
+    val change24hPercent: Double?,
+    val marketCapRank: Int? = null
 )
 
 /** Result of running the multi-signal pump check on a coin. */
