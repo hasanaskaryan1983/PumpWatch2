@@ -8,6 +8,7 @@ import com.pumpwatch.app.domain.PumpSettings
 import com.pumpwatch.app.domain.PumpSignal
 import com.pumpwatch.app.domain.TradeEvent
 import com.pumpwatch.app.domain.TradeSettings
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -79,6 +80,7 @@ object MarketRepository {
         val markets = try {
             val all = mutableListOf<com.pumpwatch.app.data.remote.CoinMarketDto>()
             for (page in 1..pagesNeeded) {
+                if (page > 1) delay(1500)
                 all += api.getMarkets(perPage = PAGE_SIZE, page = page)
             }
             _lastError.value = null
