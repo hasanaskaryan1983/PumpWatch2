@@ -103,6 +103,9 @@ private fun CoinRow(coin: CoinTrack, signal: PumpSignal?, onClick: () -> Unit) {
                 val color = if (it >= 0) Color(0xFF16C784) else Color(0xFFEA3943)
                 Text("24h: %+.2f%%".format(it), color = color)
             }
+            coin.marketCapRank?.let {
+                Text("رتبه مارکت‌کپ (CoinGecko): #$it", style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         if (signal != null && signal.isPump) {
