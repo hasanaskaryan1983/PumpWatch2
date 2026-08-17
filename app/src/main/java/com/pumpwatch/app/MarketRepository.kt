@@ -53,6 +53,7 @@ object MarketRepository {
     private val historyById = mutableMapOf<String, MutableList<PriceSnapshot>>()
     private val metaById = mutableMapOf<String, Triple<String, String, String?>>() // symbol, name, image
     private val change24hById = mutableMapOf<String, Double?>()
+    private val rankById = mutableMapOf<String, Int?>()
 
     private val _coins = MutableStateFlow<List<CoinTrack>>(emptyList())
     val coins: StateFlow<List<CoinTrack>> = _coins.asStateFlow()
@@ -102,6 +103,7 @@ object MarketRepository {
         for (m in inRange) {
             metaById[m.id] = Triple(m.symbol, m.name, m.image)
             change24hById[m.id] = m.priceChangePercentage24h
+            rankById[m.id] = m.marketCapRank
 
             val list = historyById.getOrPut(m.id) { mutableListOf() }
             list.add(PriceSnapshot(now, m.currentPrice, m.totalVolume))
@@ -125,7 +127,8 @@ object MarketRepository {
                 name = meta.second,
                 imageUrl = meta.third,
                 history = historyById[id].orEmpty(),
-                change24hPercent = change24hById[id]
+                change24hPercent = change24hById[id],
+                marketCapRank = rankById[id]
             )
         }.sortedByDescending { newSignals[it.id]?.score ?: -1 }
 
