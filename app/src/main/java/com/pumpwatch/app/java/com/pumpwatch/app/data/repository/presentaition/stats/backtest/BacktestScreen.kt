@@ -287,7 +287,6 @@ fun BacktestScreen(
     }
 }
 
-// Simple card component
 @Composable
 private fun OverviewCard(
     title: String,
