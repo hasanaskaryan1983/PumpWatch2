@@ -1,0 +1,173 @@
+package com.pumpwatch.app.presentation
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.pumpwatch.app.data.local.LanguageStore
+import com.pumpwatch.app.data.local.Languages
+import com.pumpwatch.app.domain.MarketMode
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    languageStore: LanguageStore,
+    currentMode: MarketMode,
+    onModeChange: (MarketMode) -> Unit,
+    onBack: () -> Unit
+) {
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showModeDialog by remember { mutableStateOf(false) }
+    var currentLanguage by remember { mutableStateOf(languageStore.getSavedLanguage()) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("⚙️ Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // --- Trading Mode ---
+            Text("Trading Mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showModeDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Current Mode", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "${currentMode.emoji} ${currentMode.label}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text("›", style = MaterialTheme.typography.headlineMedium)
+                }
+            }
+
+            // --- Language ---
+            Text("Language", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showLanguageDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("App Language", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            Languages.available.find { it.code == currentLanguage }?.nativeName ?: "English",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text("›", style = MaterialTheme.typography.headlineMedium)
+                }
+            }
+
+            // --- About ---
+            Text("About", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("PumpWatch v1.0", fontWeight = FontWeight.Bold)
+                    Text("Crypto Momentum Scanner", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+
+    // --- Language Dialog ---
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text("Select Language") },
+            text = {
+                Column {
+                    Languages.available.forEach { lang ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    currentLanguage = lang.code
+                                    languageStore.saveLanguage(lang.code)
+                                    showLanguageDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(lang.nativeName)
+                            if (lang.code == currentLanguage) {
+                                Text("✓", color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // --- Mode Dialog ---
+    if (showModeDialog) {
+        AlertDialog(
+            onDismissRequest = { showModeDialog = false },
+            title = { Text("Switch Trading Mode") },
+            text = {
+                Text("Changing mode will apply different settings and universe. Continue?")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val newMode = if (currentMode == MarketMode.SPOT) MarketMode.FUTURES else MarketMode.SPOT
+                    onModeChange(newMode)
+                    showModeDialog = false
+                }) {
+                    Text("Switch")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showModeDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
