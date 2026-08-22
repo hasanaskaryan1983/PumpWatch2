@@ -1,17 +1,25 @@
 package com.pumpwatch.app.data.repository
 
+import com.pumpwatch.app.data.local.TradeStore
 import com.pumpwatch.app.domain.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class TradeRepository {
+class TradeRepository(private val tradeStore: TradeStore) {
 
     private val _openTrades = MutableStateFlow<List<SimulatedTrade>>(emptyList())
     val openTrades: StateFlow<List<SimulatedTrade>> = _openTrades.asStateFlow()
 
-    private val _closedTrades = mutableListOf<SimulatedTrade>()
-    private val _allTrades = mutableListOf<SimulatedTrade>()
+    private val _closedTrades = MutableStateFlow<List<SimulatedTrade>>(emptyList())
+    val closedTrades: StateFlow<List<SimulatedTrade>> = _closedTrades.asStateFlow()
+
+    suspend fun loadTrades() {
+        tradeStore.allTrades.collect { trades ->
+            _openTrades.value = trades.filter { it.status == TradeStatus.OPEN }
+            _closedTrades.value = trades.filter { it.status == TradeStatus.CLOSED }
+        }
+    }
 
     fun processTick(
         coins: List<CoinTrack>,
@@ -28,7 +36,7 @@ class TradeRepository {
                 val (updated, event) = TradingEngine.tick(
                     coin = coin,
                     openTrade = openTrade,
-                    entrySignal = null, // No new entry for existing trade
+                    entrySignal = null,
                     settings = settings
                 )
 
@@ -36,8 +44,7 @@ class TradeRepository {
                 event?.let { events.add(it) }
 
                 if (event is TradeEvent.Closed) {
-                    _closedTrades.add(event.trade)
-                    _allTrades.add(event.trade)
+                    _closedTrades.value = _closedTrades.value + event.trade
                 }
             }
         }
@@ -46,10 +53,8 @@ class TradeRepository {
         coins.forEach { coin ->
             val signal = entrySignals[coin.id]
             if (signal != null) {
-                // Check if we already have an open trade for this coin
                 val hasOpenTrade = updatedOpenTrades.any { it.coinId == coin.id }
                 if (!hasOpenTrade) {
-                    // Check concurrent trades limit
                     if (updatedOpenTrades.size < settings.maxConcurrentTrades) {
                         val (newTrade, event) = TradingEngine.tick(
                             coin = coin,
@@ -69,11 +74,16 @@ class TradeRepository {
         return events
     }
 
-    fun getClosedTrades(): List<SimulatedTrade> = _closedTrades.toList()
-    fun getAllTrades(): List<SimulatedTrade> = _allTrades.toList()
+    suspend fun saveTrade(trade: SimulatedTrade) {
+        tradeStore.addTrade(trade)
+    }
+
+    suspend fun updateTrade(trade: SimulatedTrade) {
+        tradeStore.updateTrade(trade)
+    }
 
     fun getStatistics(): TradeStatistics {
-        val closed = _closedTrades
+        val closed = _closedTrades.value
         val wins = closed.filter { (it.closedPnlPercent ?: 0.0) > 0 }
         val losses = closed.filter { (it.closedPnlPercent ?: 0.0) <= 0 }
 
@@ -106,7 +116,6 @@ class TradeRepository {
 
     fun clear() {
         _openTrades.value = emptyList()
-        _closedTrades.clear()
-        _allTrades.clear()
+        _closedTrades.value = emptyList()
     }
 }
