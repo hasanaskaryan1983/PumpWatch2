@@ -1,8 +1,8 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("com.google.devtools.ksp") version "2.0.0-1.0.24"
 }
 
 android {
@@ -87,13 +87,13 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    // WorkManager (برای Background Worker)
+    // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // AppCompat (برای Language Store)
+    // AppCompat
     implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Tests
