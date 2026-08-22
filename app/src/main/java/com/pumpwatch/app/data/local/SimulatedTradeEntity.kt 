@@ -5,11 +5,12 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "simulated_trades")
 data class SimulatedTradeEntity(
-    @PrimaryKey val id: String,
+    @PrimaryKey
+    val id: String,
     val coinId: String,
     val symbol: String,
     val name: String,
-    val direction: String,              // "LONG" or "SHORT"
+    val direction: String,
     val entryPrice: Double,
     val entryTimeMillis: Long,
     val highestPriceSinceEntry: Double,
@@ -17,10 +18,10 @@ data class SimulatedTradeEntity(
     val trailingStopPrice: Double,
     val hardStopLossPrice: Double,
     val takeProfitPrice: Double?,
-    val status: String,                 // "OPEN" or "CLOSED"
+    val status: String,
     val feePercent: Double,
     val stakeAmount: Double,
     val exitPrice: Double?,
     val exitTimeMillis: Long?,
-    val exitReason: String?             // enum name as string
+    val exitReason: String?
 )
