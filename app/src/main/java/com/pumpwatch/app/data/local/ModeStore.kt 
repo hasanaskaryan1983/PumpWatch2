@@ -1,0 +1,17 @@
+package com.pumpwatch.app.data.local
+
+import android.content.Context
+import com.pumpwatch.app.domain.MarketMode
+
+class ModeStore(context: Context) {
+    private val prefs = context.getSharedPreferences("mode", Context.MODE_PRIVATE)
+
+    fun hasChosen(): Boolean = prefs.contains("mode")
+
+    fun current(): MarketMode =
+        prefs.getString("mode", null)
+            ?.let { runCatching { MarketMode.valueOf(it) }.getOrNull() }
+            ?: MarketMode.SPOT
+
+    fun save(mode: MarketMode) = prefs.edit().putString("mode", mode.name).apply()
+}
