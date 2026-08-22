@@ -1,12 +1,7 @@
-
 package com.pumpwatch.app.data.local
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.pumpwatch.app.domain.ExitReason
-import com.pumpwatch.app.domain.SimulatedTrade
-import com.pumpwatch.app.domain.TradeDirection
-import com.pumpwatch.app.domain.TradeStatus
 
 @Entity(tableName = "simulated_trades")
 data class SimulatedTradeEntity(
@@ -27,49 +22,5 @@ data class SimulatedTradeEntity(
     val stakeAmount: Double,
     val exitPrice: Double?,
     val exitTimeMillis: Long?,
-    val exitReason: String?             // enum name
-) {
-    companion object {
-        fun fromDomain(t: SimulatedTrade): SimulatedTradeEntity = SimulatedTradeEntity(
-            id = t.id,
-            coinId = t.coinId,
-            symbol = t.symbol,
-            name = t.name,
-            direction = t.direction.name,
-            entryPrice = t.entryPrice,
-            entryTimeMillis = t.entryTimeMillis,
-            highestPriceSinceEntry = t.highestPriceSinceEntry,
-            lowestPriceSinceEntry = t.lowestPriceSinceEntry,
-            trailingStopPrice = t.trailingStopPrice,
-            hardStopLossPrice = t.hardStopLossPrice,
-            takeProfitPrice = t.takeProfitPrice,
-            status = t.status.name,
-            feePercent = t.feePercent,
-            stakeAmount = t.stakeAmount,
-            exitPrice = t.exitPrice,
-            exitTimeMillis = t.exitTimeMillis,
-            exitReason = t.exitReason?.name
-        )
-
-        fun toDomain(e: SimulatedTradeEntity): SimulatedTrade = SimulatedTrade(
-            id = e.id,
-            coinId = e.coinId,
-            symbol = e.symbol,
-            name = e.name,
-            direction = runCatching { TradeDirection.valueOf(e.direction) }.getOrDefault(TradeDirection.LONG),
-            entryPrice = e.entryPrice,
-            entryTimeMillis = e.entryTimeMillis,
-            highestPriceSinceEntry = e.highestPriceSinceEntry,
-            lowestPriceSinceEntry = e.lowestPriceSinceEntry,
-            trailingStopPrice = e.trailingStopPrice,
-            hardStopLossPrice = e.hardStopLossPrice,
-            takeProfitPrice = e.takeProfitPrice,
-            status = runCatching { TradeStatus.valueOf(e.status) }.getOrDefault(TradeStatus.OPEN),
-            feePercent = e.feePercent,
-            stakeAmount = e.stakeAmount,
-            exitPrice = e.exitPrice,
-            exitTimeMillis = e.exitTimeMillis,
-            exitReason = e.exitReason?.let { runCatching { ExitReason.valueOf(it) }.getOrNull() }
-        )
-    }
-}
+    val exitReason: String?             // enum name as string
+)
