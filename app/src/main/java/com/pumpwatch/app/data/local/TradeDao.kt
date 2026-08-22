@@ -1,4 +1,3 @@
-
 package com.pumpwatch.app.data.local
 
 import androidx.room.Dao
