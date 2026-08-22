@@ -35,7 +35,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        /** Migration: adds direction and lowestPriceSinceEntry columns for futures support. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
