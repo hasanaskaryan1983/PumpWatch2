@@ -1,84 +1,75 @@
-package com.pumpwatch.app.ui.backtest
+package com.pumpwatch.app.presentation.backtest
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pumpwatch.app.data.repository.MarketRepository
-import com.pumpwatch.app.data.repository.PumpSettingsStore
-import com.pumpwatch.app.data.repository.TradeSettingsStore
-import com.pumpwatch.app.domain.BacktestResult
-import com.pumpwatch.app.domain.Backtester
-import com.pumpwatch.app.domain.CoinTrack
+import com.pumpwatch.app.domain.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class BacktestUiState(
-    val isRunning: Boolean = false,
-    val progressText: String = "",
-    val perCoinResults: Map<String, BacktestResult> = emptyMap(),
-    val combined: BacktestResult? = null,
-    val error: String? = null
+data class BacktestInputs(
+    val coinId: String = "",
+    val coinSymbol: String = "",
+    val mode: MarketMode = MarketMode.SPOT,
+    val days: Int = 30
 )
 
-class BacktestViewModel(application: Application) : AndroidViewModel(application) {
+sealed class BacktestUiState {
+    object Idle : BacktestUiState()
+    object Running : BacktestUiState()
+    data class Result(
+        val result: BacktestResult,
+        val insights: List<Insight> = emptyList()
+    ) : BacktestUiState()
+    data class Error(val message: String) : BacktestUiState()
+}
 
-    private val pumpSettingsStore = PumpSettingsStore(application)
-    private val tradeSettingsStore = TradeSettingsStore(application)
+class BacktestViewModel(
+    private val backtester: Backtester,
+    private val coinRepository: CoinRepository
+) : ViewModel() {
 
-    val candidateCoins: StateFlow<List<CoinTrack>> = MarketRepository.coins
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _inputs = MutableStateFlow(BacktestInputs())
+    val inputs: StateFlow<BacktestInputs> = _inputs.asStateFlow()
 
-    private val _uiState = MutableStateFlow(BacktestUiState())
-    val uiState: StateFlow<BacktestUiState> = _uiState
+    private val _uiState = MutableStateFlow<BacktestUiState>(BacktestUiState.Idle)
+    val uiState: StateFlow<BacktestUiState> = _uiState.asStateFlow()
 
-    fun run(selectedCoinIds: List<String>, days: Int) {
-        if (selectedCoinIds.isEmpty()) {
-            _uiState.value = BacktestUiState(error = "حداقل یک کوین را انتخاب کن")
-            return
-        }
+    val availableCoins: StateFlow<List<CoinTrack>> = coinRepository.coins
+
+    fun updateInputs(update: BacktestInputs.() -> BacktestInputs) {
+        _inputs.update(update)
+    }
+
+    fun runBacktest() {
+        val currentInputs = _inputs.value
+        if (currentInputs.coinId.isBlank()) return
 
         viewModelScope.launch {
-            _uiState.value = BacktestUiState(isRunning = true, progressText = "در حال دریافت داده تاریخی…")
+            _uiState.value = BacktestUiState.Running
 
-            val pumpSettings = pumpSettingsStore.settingsFlow.first()
-            val tradeSettings = tradeSettingsStore.settingsFlow.first()
-            val coinsById = candidateCoins.value.associateBy { it.id }
-
-            val perCoin = mutableMapOf<String, BacktestResult>()
-            val allTrades = mutableListOf<com.pumpwatch.app.domain.SimulatedTrade>()
-
-            for ((index, coinId) in selectedCoinIds.withIndex()) {
-                val meta = coinsById[coinId]
-                _uiState.value = _uiState.value.copy(
-                    progressText = "در حال پردازش ${meta?.name ?: coinId} (${index + 1}/${selectedCoinIds.size})"
+            try {
+                val result = backtester.runBacktest(
+                    coinId = currentInputs.coinId,
+                    mode = currentInputs.mode,
+                    days = currentInputs.days
                 )
-                try {
-                    val history = MarketRepository.fetchHistoricalSnapshots(coinId, days)
-                    val trades = Backtester.run(
-                        coinId = coinId,
-                        symbol = meta?.symbol ?: coinId,
-                        name = meta?.name ?: coinId,
-                        fullHistory = history,
-                        pumpSettings = pumpSettings,
-                        tradeSettings = tradeSettings
-                    )
-                    allTrades += trades
-                    perCoin[coinId] = Backtester.summarize(trades, openCount = 0)
-                } catch (e: Exception) {
-                    _uiState.value = _uiState.value.copy(error = "خطا در دریافت ${meta?.name ?: coinId}: ${e.message}")
-                }
-            }
 
-            _uiState.value = BacktestUiState(
-                isRunning = false,
-                perCoinResults = perCoin,
-                combined = Backtester.summarize(allTrades, openCount = 0),
-                error = _uiState.value.error
-            )
+                val insights = BacktestAdvisor.analyze(result)
+
+                _uiState.value = BacktestUiState.Result(
+                    result = result,
+                    insights = insights
+                )
+            } catch (e: Exception) {
+                _uiState.value = BacktestUiState.Error(e.message ?: "Unknown error")
+            }
         }
+    }
+
+    fun reset() {
+        _uiState.value = BacktestUiState.Idle
     }
 }
